@@ -1,6 +1,6 @@
 package com.example.firebaserealtimedatabase;
 
-public class pdfClass {
+public class DownloadFirebaseModelClass {
     public String getName() {
         return name;
     }
@@ -17,7 +17,7 @@ public class pdfClass {
         this.url = url;
     }
 
-    public pdfClass(String name, String url) {
+    public DownloadFirebaseModelClass(String name, String url) {
         this.name = name;
         this.url = url;
     }

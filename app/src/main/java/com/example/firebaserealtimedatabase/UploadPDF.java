@@ -83,7 +83,7 @@ public class UploadPDF extends AppCompatActivity {
                         while (!uriTask.isComplete());
                         Uri url = uriTask.getResult();
 
-                        pdfClass pdfClass = new pdfClass(et_upload_file_name.getText().toString(), url.toString());
+                        DownloadFirebaseModelClass pdfClass = new DownloadFirebaseModelClass(et_upload_file_name.getText().toString(), url.toString());
                         databaseReference.child(databaseReference.push().getKey()).setValue(pdfClass);
 
 
