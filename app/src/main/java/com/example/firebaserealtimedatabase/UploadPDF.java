@@ -1,5 +1,4 @@
 package com.example.firebaserealtimedatabase;
-
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -20,6 +19,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.work.Constraints;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
+import androidx.work.WorkRequest;
 
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -32,6 +37,9 @@ import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.concurrent.TimeUnit;
+
+import kotlin.jvm.internal.Intrinsics;
 
 public class UploadPDF extends AppCompatActivity {
 
@@ -53,14 +61,29 @@ public class UploadPDF extends AppCompatActivity {
         storageReference = FirebaseStorage.getInstance().getReference();
         databaseReference = FirebaseDatabase.getInstance().getReference("Uploads");
 
+
+
         btn_upload.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onClick(View view) {
                 createMyPDF(getApplicationContext(), "jsn", "SKH_Bills.pdf");
-                uploadFiles(Uri.fromFile(getFilePath()));
+//                uploadFiles(Uri.fromFile(getFilePath()));
+                myWorkManager();
             }
         });
 
+    }
+
+    @RequiresApi(26)
+    public final void myWorkManager() {
+        Constraints var10000 = (new Constraints.Builder()).setRequiresCharging(false).setRequiredNetworkType(NetworkType.NOT_REQUIRED).setRequiresCharging(false).setRequiresBatteryNotLow(true).build();
+        Intrinsics.checkNotNullExpressionValue(var10000, "Constraints.Builder()\n  …rue)\n            .build()");
+        Constraints constraints = var10000;
+        WorkRequest var3 = ((androidx.work.PeriodicWorkRequest.Builder)(new androidx.work.PeriodicWorkRequest.Builder(MyWorker.class, 15L, TimeUnit.MINUTES)).setConstraints(constraints)).build();
+        Intrinsics.checkNotNullExpressionValue(var3, "PeriodicWorkRequest.Buil…nts)\n            .build()");
+        PeriodicWorkRequest myRequest = (PeriodicWorkRequest)var3;
+        WorkManager.getInstance((Context)this).enqueueUniquePeriodicWork("my_id", ExistingPeriodicWorkPolicy.KEEP, myRequest);
     }
 
     private void selectFiles() {
