@@ -1,9 +1,16 @@
 package com.example.firebaserealtimedatabase;
 
 import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
+import android.graphics.Paint;
+import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -11,6 +18,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -21,6 +29,9 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+
+import java.io.File;
+import java.io.FileOutputStream;
 
 public class UploadPDF extends AppCompatActivity {
 
@@ -45,7 +56,8 @@ public class UploadPDF extends AppCompatActivity {
         btn_upload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                selectFiles();
+                createMyPDF(getApplicationContext(), "jsn", "SKH_Bills.pdf");
+                uploadFiles(Uri.fromFile(getFilePath()));
             }
         });
 
@@ -63,7 +75,7 @@ public class UploadPDF extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if(requestCode == 1 && (data != null) && (data.getData() != null) && ( resultCode == RESULT_OK)){
-            uploadFiles(data.getData());
+//            uploadFiles(data.getData());
         }
     }
 
@@ -99,5 +111,55 @@ public class UploadPDF extends AppCompatActivity {
                         progressDialog.setMessage("Upload:"+(int) progress+"%");
                     }
                 });
+    }
+
+
+
+    // Create PDF
+    //==============================================================================================
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    public static void createMyPDF(Context context, String file_data, String file_name) {
+
+        //Create the pdf page
+        PdfDocument myPdfDocument = new PdfDocument();
+        PdfDocument.PageInfo myPageInfo = new PdfDocument.PageInfo.Builder(300, 600, 1).create();
+        PdfDocument.Page myPage = myPdfDocument.startPage(myPageInfo);
+        Paint myPaint = new Paint();
+
+        //Initialize top and left margin for text
+        int x = 10, y = 25;
+
+        //Paint the string to the page
+        for (String line : file_data.split("\n")) {
+            myPage.getCanvas().drawText(line, x, y, myPaint);
+            y += myPaint.descent() - myPaint.ascent();
+        }
+
+        //Finish writing/painting on the page
+        myPdfDocument.finishPage(myPage);
+
+        //Initialize the file with the name and path
+
+        ContextWrapper contextWrapper = new ContextWrapper(context);
+        File downloadDirectory = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        File file = new File(downloadDirectory, file_name);
+        try {
+            myPdfDocument.writeTo(new FileOutputStream(file));
+            Toast.makeText(context, "File saved!", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            //If file is not saved, print stack trace, clear edittext, and display toast message
+            e.printStackTrace();
+            Log.i("test_response", "Error : " + e.getMessage().toString());
+            Toast.makeText(context, "File not saved... Possible permissions error", Toast.LENGTH_SHORT).show();
+        }
+        myPdfDocument.close();
+    }
+    //==============================================================================================
+
+    public File getFilePath(){
+        ContextWrapper contextWrapper = new ContextWrapper(getApplicationContext());
+        File downloadDirectory = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        File file = new File(downloadDirectory, "SKH_Bills.pdf");
+        return file;
     }
 }
