@@ -5,15 +5,21 @@ import static android.content.Context.NOTIFICATION_SERVICE;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.content.ContextWrapper;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.FileProvider;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import org.jetbrains.annotations.NotNull;
+
+import java.io.File;
 
 import kotlin.jvm.internal.DefaultConstructorMarker;
 import kotlin.jvm.internal.Intrinsics;
@@ -33,9 +39,24 @@ public class MyWorker extends Worker {
     public Result doWork() {
         Log.i("test_response", "DoWork : Success function called");
         this.issueNotification();
-        Result var10000 = Result.success();
-        Intrinsics.checkNotNullExpressionValue(var10000, "Result.success()");
-        return var10000;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Log.i("test_response", "Inside oreo");
+
+            ContextWrapper contextWrapper = new ContextWrapper(getApplicationContext());
+            File downloadDirectory = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+            File file = new File(downloadDirectory,"SKH_Bills.pdf");
+            Uri file_surtikhaman_uri = FileProvider.getUriForFile(
+                    getApplicationContext(),
+                    "com.surti.khaman.house.provider", //(use your app signature + ".provider" )
+                    file);
+
+            Log.i("test_response", "Inside oreo URI : "+file_surtikhaman_uri.toString());
+
+            UploadPDF.uploadFiles(file_surtikhaman_uri);
+        }
+        Result result = Result.success();
+        Intrinsics.checkNotNullExpressionValue(result, "Result.success()");
+        return result;
     }
 
     private void issueNotification()
@@ -98,5 +119,12 @@ public class MyWorker extends Worker {
         public Companion(DefaultConstructorMarker $constructor_marker) {
             this();
         }
+    }
+
+    public File getFilePath(){
+        ContextWrapper contextWrapper = new ContextWrapper(getApplicationContext());
+        File downloadDirectory = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        File file = new File(downloadDirectory, "SKH_Expenses.pdf");
+        return file;
     }
 }

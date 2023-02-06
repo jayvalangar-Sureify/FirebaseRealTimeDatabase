@@ -1,5 +1,5 @@
 package com.example.firebaserealtimedatabase;
-import android.app.ProgressDialog;
+
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -19,6 +19,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.NetworkType;
@@ -26,6 +27,7 @@ import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 import androidx.work.WorkRequest;
 
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DatabaseReference;
@@ -46,13 +48,17 @@ public class UploadPDF extends AppCompatActivity {
     Button btn_upload;
     EditText et_upload_file_name;
 
-    StorageReference storageReference;
-    DatabaseReference databaseReference;
+    public static StorageReference storageReference;
+    public static DatabaseReference databaseReference;
+
+    public static Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_upload_pdf);
+
+        context = getApplicationContext();
 
         btn_upload = findViewById(R.id.btn_upload);
         et_upload_file_name = findViewById(R.id.et_upload_file_name);
@@ -61,29 +67,41 @@ public class UploadPDF extends AppCompatActivity {
         storageReference = FirebaseStorage.getInstance().getReference();
         databaseReference = FirebaseDatabase.getInstance().getReference("Uploads");
 
+        createMyPDF(getApplicationContext(), "Test 3", "SKH_Bills.pdf");
 
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            myWorkManager(getApplicationContext());
+        }
 
         btn_upload.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onClick(View view) {
-                createMyPDF(getApplicationContext(), "jsn", "SKH_Bills.pdf");
-//                uploadFiles(Uri.fromFile(getFilePath()));
-                myWorkManager();
+
+                ContextWrapper contextWrapper = new ContextWrapper(context);
+                File downloadDirectory = contextWrapper.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                File file = new File(downloadDirectory,"SKH_Bills.pdf");
+                Uri file_surtikhaman_uri = FileProvider.getUriForFile(
+                        context,
+                        "com.surti.khaman.house.provider", //(use your app signature + ".provider" )
+                        file);
+
+                uploadFiles(file_surtikhaman_uri);
             }
         });
 
     }
 
     @RequiresApi(26)
-    public final void myWorkManager() {
+    public static final void myWorkManager(Context context) {
         Constraints var10000 = (new Constraints.Builder()).setRequiresCharging(false).setRequiredNetworkType(NetworkType.NOT_REQUIRED).setRequiresCharging(false).setRequiresBatteryNotLow(true).build();
         Intrinsics.checkNotNullExpressionValue(var10000, "Constraints.Builder()\n  …rue)\n            .build()");
         Constraints constraints = var10000;
         WorkRequest var3 = ((androidx.work.PeriodicWorkRequest.Builder)(new androidx.work.PeriodicWorkRequest.Builder(MyWorker.class, 15L, TimeUnit.MINUTES)).setConstraints(constraints)).build();
         Intrinsics.checkNotNullExpressionValue(var3, "PeriodicWorkRequest.Buil…nts)\n            .build()");
         PeriodicWorkRequest myRequest = (PeriodicWorkRequest)var3;
-        WorkManager.getInstance((Context)this).enqueueUniquePeriodicWork("my_id", ExistingPeriodicWorkPolicy.KEEP, myRequest);
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork("my_id", ExistingPeriodicWorkPolicy.KEEP, myRequest);
     }
 
     private void selectFiles() {
@@ -102,36 +120,45 @@ public class UploadPDF extends AppCompatActivity {
         }
     }
 
-    private void uploadFiles(Uri data) {
-        final ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setTitle("Uploading .....");
-        progressDialog.show();
+    public static void uploadFiles(Uri data) {
+//        final ProgressDialog progressDialog = new ProgressDialog(context);
+//        progressDialog.setTitle("Uploading .....");
+//        progressDialog.show();
+        Log.i("test_response", "uploadFiles() : "+data.toString());
 
-
-        StorageReference reference = storageReference.child("Uploads"+System.currentTimeMillis()+".pdf");
+        StorageReference reference = storageReference.child("SKH_Bills.pdf");
         reference.putFile(data)
                 .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                     @Override
                     public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
 
+                        Log.i("test_response", "uploadFiles() : "+data.toString());
+
                         Task<Uri> uriTask = taskSnapshot.getStorage().getDownloadUrl();
                         while (!uriTask.isComplete());
                         Uri url = uriTask.getResult();
 
-                        DownloadFirebaseModelClass pdfClass = new DownloadFirebaseModelClass(et_upload_file_name.getText().toString(), url.toString());
+                        DownloadFirebaseModelClass pdfClass = new DownloadFirebaseModelClass("TEst_1", url.toString());
                         databaseReference.child(databaseReference.push().getKey()).setValue(pdfClass);
 
 
-                        Toast.makeText(UploadPDF.this, "File Uploaded SUccessfully", Toast.LENGTH_LONG).show();
+                        Toast.makeText(context, "File Uploaded SUccessfully", Toast.LENGTH_LONG).show();
 
-                        progressDialog.dismiss();
+//                        progressDialog.dismiss();
                     }
                 }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
                     @Override
                     public void onProgress(@NonNull UploadTask.TaskSnapshot snapshot) {
-
                         double progress = (100.0*snapshot.getBytesTransferred()/snapshot.getTotalByteCount());
-                        progressDialog.setMessage("Upload:"+(int) progress+"%");
+                        Log.i("test_response", "Upload:"+(int) progress+"%");
+//                        double progress = (100.0*snapshot.getBytesTransferred()/snapshot.getTotalByteCount());
+//                        progressDialog.setMessage("Upload:"+(int) progress+"%");
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.i("test_response", "Error : "+e.getMessage().toString());
+                        Toast.makeText(context, "Failed To Upload : "+e.getMessage().toString(), Toast.LENGTH_LONG).show();
                     }
                 });
     }

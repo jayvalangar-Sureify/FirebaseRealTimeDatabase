@@ -40,6 +40,17 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.surti.khaman.house.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <!-- ressource file to create -->
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths">
+            </meta-data>
+        </provider>
     </application>
 
 </manifest>
