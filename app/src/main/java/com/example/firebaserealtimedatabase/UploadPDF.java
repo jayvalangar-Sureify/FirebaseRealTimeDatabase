@@ -67,11 +67,9 @@ public class UploadPDF extends AppCompatActivity {
         btn_upload = findViewById(R.id.btn_upload);
         et_upload_file_name = findViewById(R.id.et_upload_file_name);
 
-        // Database
-        storageReference = FirebaseStorage.getInstance().getReference();
-        databaseReference = FirebaseDatabase.getInstance().getReference("Uploads");
 
-        createMyPDF(getApplicationContext(), "Test FEB 7, 11:42", "SKH_Bills.pdf");
+
+        createMyPDF(getApplicationContext(), "Test FEB 7, 12:25", "SKH_Bills.pdf");
 
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -138,7 +136,10 @@ public class UploadPDF extends AppCompatActivity {
             public void run() {
                 initFirebase();
 
-                StorageReference reference = storageReference.child("SKH_Bills.pdf");
+                // Database
+                storageReference = FirebaseStorage.getInstance().getReference();
+                databaseReference = FirebaseDatabase.getInstance().getReference("Uploads");
+                StorageReference reference = storageReference.child("Uploads");
                 reference.putFile(data)
                         .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                             @Override
