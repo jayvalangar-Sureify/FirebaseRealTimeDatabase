@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.Paint;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -30,6 +31,9 @@ import androidx.work.WorkRequest;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.appcheck.FirebaseAppCheck;
+import com.google.firebase.appcheck.safetynet.SafetyNetAppCheckProviderFactory;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
@@ -67,7 +71,7 @@ public class UploadPDF extends AppCompatActivity {
         storageReference = FirebaseStorage.getInstance().getReference();
         databaseReference = FirebaseDatabase.getInstance().getReference("Uploads");
 
-        createMyPDF(getApplicationContext(), "Test 3", "SKH_Bills.pdf");
+        createMyPDF(getApplicationContext(), "Test FEB 7, 11:42", "SKH_Bills.pdf");
 
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -126,41 +130,61 @@ public class UploadPDF extends AppCompatActivity {
 //        progressDialog.show();
         Log.i("test_response", "uploadFiles() : "+data.toString());
 
-        StorageReference reference = storageReference.child("SKH_Bills.pdf");
-        reference.putFile(data)
-                .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                    @Override
-                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-
-                        Log.i("test_response", "uploadFiles() : "+data.toString());
-
-                        Task<Uri> uriTask = taskSnapshot.getStorage().getDownloadUrl();
-                        while (!uriTask.isComplete());
-                        Uri url = uriTask.getResult();
-
-                        DownloadFirebaseModelClass pdfClass = new DownloadFirebaseModelClass("TEst_1", url.toString());
-                        databaseReference.child(databaseReference.push().getKey()).setValue(pdfClass);
 
 
-                        Toast.makeText(context, "File Uploaded SUccessfully", Toast.LENGTH_LONG).show();
+
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                initFirebase();
+
+                StorageReference reference = storageReference.child("SKH_Bills.pdf");
+                reference.putFile(data)
+                        .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                            @Override
+                            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+
+                                Log.i("test_response", "uploadFiles() : "+data.toString());
+
+                                Task<Uri> uriTask = taskSnapshot.getStorage().getDownloadUrl();
+                                while (!uriTask.isComplete());
+                                Uri url = uriTask.getResult();
+
+                                DownloadFirebaseModelClass pdfClass = new DownloadFirebaseModelClass("TEST_FEB_7", url.toString());
+                                databaseReference.child(databaseReference.push().getKey()).setValue(pdfClass);
+
+                                Log.i("test_response", "File Uploaded SUccessfully : "+data.toString());
+
+//                                Toast.makeText(context, "File Uploaded SUccessfully", Toast.LENGTH_LONG).show();
 
 //                        progressDialog.dismiss();
-                    }
-                }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
-                    @Override
-                    public void onProgress(@NonNull UploadTask.TaskSnapshot snapshot) {
-                        double progress = (100.0*snapshot.getBytesTransferred()/snapshot.getTotalByteCount());
-                        Log.i("test_response", "Upload:"+(int) progress+"%");
+                            }
+                        }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                            @Override
+                            public void onProgress(@NonNull UploadTask.TaskSnapshot snapshot) {
+                                double progress = (100.0*snapshot.getBytesTransferred()/snapshot.getTotalByteCount());
+                                Log.i("test_response", "Upload:"+(int) progress+"%");
 //                        double progress = (100.0*snapshot.getBytesTransferred()/snapshot.getTotalByteCount());
 //                        progressDialog.setMessage("Upload:"+(int) progress+"%");
-                    }
-                }).addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.i("test_response", "Error : "+e.getMessage().toString());
-                        Toast.makeText(context, "Failed To Upload : "+e.getMessage().toString(), Toast.LENGTH_LONG).show();
-                    }
-                });
+                            }
+                        }).addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Log.i("test_response", "Error : "+e.getMessage().toString());
+//                                Toast.makeText(context, "Failed To Upload : "+e.getMessage().toString(), Toast.LENGTH_LONG).show();
+                            }
+                        });
+            }
+        });
+
+
+    }
+
+    private static void initFirebase() {
+        FirebaseApp.initializeApp(context);
+
+        FirebaseAppCheck firebaseAppCheck = FirebaseAppCheck.getInstance();
+        firebaseAppCheck.installAppCheckProviderFactory(SafetyNetAppCheckProviderFactory.getInstance());
     }
 
 
